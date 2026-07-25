@@ -1005,6 +1005,15 @@
             puzzleDragState.lastCell = cell;
             renderPuzzle();
             checkAutoComplete(selected);
+
+            // Auto-check if puzzle is fully solved
+            if (pathsCross()) {
+                puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
+                return;
+            }
+            if (checkPuzzleSolved()) {
+                completePuzzle();
+            }
         }
 
         function checkAutoComplete(number) {
