@@ -503,8 +503,16 @@
         }, { passive: false });
 
         btn.addEventListener('click', startRound);
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startRound();
+        }, { passive: false });
 
         saveNameBtn.addEventListener('click', submitName);
+        saveNameBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            submitName();
+        }, { passive: false });
         nameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') submitName();
         });
@@ -522,9 +530,16 @@
                 renderLeaderboard();
             }
         });
+        resetLeaderboardBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (confirm('Clear all leaderboard records?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                renderLeaderboard();
+            }
+        }, { passive: false });
 
-        // Prevent zoom on double tap
-        document.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+        // Prevent zoom on double tap only on game circle, leave buttons clickable
+        circle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
 
         renderLeaderboard();
     </script>
