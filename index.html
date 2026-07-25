@@ -1147,11 +1147,12 @@
             }
         }, { passive: false });
 
-        puzzleGridEl.addEventListener('click', handlePuzzleCellClick);
-        puzzleGridEl.addEventListener('touchstart', (e) => {
+        let lastPointerTarget = null;
+        puzzleGridEl.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            lastPointerTarget = e.target;
             handlePuzzleCellClick(e);
-        }, { passive: false });
+        });
 
         refreshPuzzleLeaderboardBtn.addEventListener('click', () => loadLeaderboard(PUZZLE_API, puzzleLeaderboardRows, { value: puzzleCachedLeaderboard }, formatTime));
         refreshPuzzleLeaderboardBtn.addEventListener('touchstart', (e) => {
