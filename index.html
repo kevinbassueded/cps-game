@@ -306,6 +306,9 @@
 
         const STORAGE_KEY = 'cpsReactionLeaderboard';
         const MAX_LEADERS = 3;
+        const API_URL = 'https://cps-game-leaderboard.ksueded.workers.dev/leaderboard';
+
+        let cachedLeaderboard = [];
 
         let state = 'idle'; // idle, waiting, green, result, nameInput
         let greenTime = 0;
@@ -334,22 +337,16 @@
         function playTooSoonSound() { beep(220, 0.25, 'sawtooth'); }
         function playTopThreeSound() { beep(1320, 0.18, 'square'); }
 
-        // --- Leaderboard ---
-        function loadLeaderboard() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                return raw ? JSON.parse(raw) : [];
-            } catch (e) {
-                return [];
-            }
+        // --- Leaderboard (remote API) ---
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
-        function saveLeaderboard(list) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        }
-        function renderLeaderboard() {
-            const list = loadLeaderboard();
+        function renderLeaderboard(list) {
+            cachedLeaderboard = list;
             leaderboardRows.innerHTML = '';
-            if (list.length === 0) {
+            if (!Array.isArray(list) || list.length === 0) {
                 const row = document.createElement('div');
                 row.className = 'leaderboard-row empty';
                 row.textContent = 'No records yet — be the first!';
@@ -374,22 +371,42 @@
                 leaderboardRows.appendChild(row);
             }
         }
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        async function loadLeaderboard() {
+            try {
+                const res = await fetch(API_URL, { cache: 'no-store' });
+                if (!res.ok) throw new Error('fetch failed');
+                const list = await res.json();
+                renderLeaderboard(list);
+            } catch (e) {
+                console.error('leaderboard load error', e);
+                renderLeaderboard([]);
+            }
         }
         function isTopThree(time) {
-            const list = loadLeaderboard();
-            if (list.length < MAX_LEADERS) return true;
-            return time < list[list.length - 1].time;
+            if (!Array.isArray(cachedLeaderboard)) return true;
+            if (cachedLeaderboard.length < MAX_LEADERS) return true;
+            return time < cachedLeaderboard[cachedLeaderboard.length - 1].time;
         }
-        function addLeader(name, time) {
-            const list = loadLeaderboard();
-            list.push({ name, time, date: new Date().toISOString() });
-            list.sort((a, b) => a.time - b.time);
-            saveLeaderboard(list.slice(0, MAX_LEADERS));
-            renderLeaderboard();
+        async function addLeader(name, time) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, time })
+                });
+                if (!res.ok) throw new Error('post failed');
+                const list = await res.json();
+                renderLeaderboard(list);
+            } catch (e) {
+                console.error('leaderboard save error', e);
+                status.textContent = 'Save failed. Tap circle to retry.';
+                status.classList.add('not-top');
+                status.classList.remove('too-soon', 'top-three');
+                circle.textContent = 'RETRY';
+                state = 'result';
+                return false;
+            }
+            return true;
         }
 
         // --- Game ---
@@ -432,10 +449,11 @@
             playTopThreeSound();
         }
 
-        function submitName() {
+        async function submitName() {
             const name = nameInput.value.trim();
             if (!name) return;
-            addLeader(name, lastReaction);
+            const saved = await addLeader(name, lastReaction);
+            if (!saved) return;
             nameModal.classList.remove('active');
             status.textContent = 'Saved! Tap circle or Start to retry.';
             status.classList.add('top-three');
@@ -525,23 +543,17 @@
         });
 
         resetLeaderboardBtn.addEventListener('click', () => {
-            if (confirm('Clear all leaderboard records?')) {
-                localStorage.removeItem(STORAGE_KEY);
-                renderLeaderboard();
-            }
+            loadLeaderboard();
         });
         resetLeaderboardBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (confirm('Clear all leaderboard records?')) {
-                localStorage.removeItem(STORAGE_KEY);
-                renderLeaderboard();
-            }
+            loadLeaderboard();
         }, { passive: false });
 
         // Prevent zoom on double tap only on game circle, leave buttons clickable
         circle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
 
-        renderLeaderboard();
+        loadLeaderboard();
     </script>
 </body>
 </html>
