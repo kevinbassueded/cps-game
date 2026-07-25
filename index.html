@@ -932,87 +932,79 @@
             return 0;
         }
 
-        function handlePuzzleCellClick(e) {
-            if (puzzleState.solved) return;
-            const cell = getCellFromEvent(e);
-            if (!cell) return;
-            handlePuzzleCellAction(cell);
-        }
-
-        function handlePuzzleCellAction(cell) {
-            const number = getNumberAt(cell);
-
-            if (!puzzleState.startTime && number > 0) {
+        function selectPair(number, cell) {
+            if (!puzzleState.startTime) {
                 puzzleState.startTime = performance.now();
                 startPuzzleTimer();
             }
+            puzzleState.selected = number;
+            puzzleState.paths[number] = [cell];
+            puzzleDragState.pair = number;
+            puzzleDragState.lastCell = cell;
+            renderPuzzle();
+            puzzleStatusEl.textContent = `Selected ${number}. Drag to draw path.`;
+        }
 
-            if (number > 0) {
-                // If this is the other endpoint of the currently selected pair and adjacent, connect it
-                if (puzzleState.selected === number) {
-                    const path = puzzleState.paths[number] || [];
-                    if (path.length > 0 && isAdjacent(path[path.length - 1], cell) && !pathContainsCell(path, cell)) {
-                        puzzleState.paths[number].push(cell);
-                        renderPuzzle();
-                        checkAutoComplete(number);
-                        return;
-                    }
-                }
-                // Select this pair and start the path from this endpoint
-                puzzleState.selected = number;
-                puzzleState.paths[number] = [cell];
-                puzzleDragState.pair = number;
-                puzzleDragState.lastCell = cell;
-                renderPuzzle();
-                puzzleStatusEl.textContent = `Selected ${number}. Drag to draw path.`;
-                return;
-            }
-
-            if (!puzzleState.selected) {
-                puzzleStatusEl.textContent = 'Select a number first.';
-                return;
-            }
+        function extendPath(cell) {
+            if (puzzleState.solved || !puzzleState.selected) return false;
 
             const selected = puzzleState.selected;
             const path = puzzleState.paths[selected] || [];
+            if (path.length === 0) return false;
 
+            const last = path[path.length - 1];
+            if (cell.r === last.r && cell.c === last.c) return false;
+
+            // Backtrack over own path
             if (pathContainsCell(path, cell)) {
                 const idx = path.findIndex(p => p.r === cell.r && p.c === cell.c);
                 puzzleState.paths[selected] = path.slice(0, idx + 1);
                 puzzleDragState.lastCell = cell;
                 renderPuzzle();
-                return;
+                return true;
             }
 
-            if (path.length === 0) {
-                puzzleStatusEl.textContent = 'Select a number endpoint first.';
-                return;
-            }
+            if (!isAdjacent(last, cell)) return false;
 
-            const last = path[path.length - 1];
-            if (!isAdjacent(last, cell)) {
-                puzzleStatusEl.textContent = 'Only adjacent cells.';
-                return;
-            }
+            const number = getNumberAt(cell);
+            // Only allow empty cells or the other endpoint of the selected pair
+            if (number > 0 && number !== selected) return false;
 
             const occupant = cellOccupiedBy(cell);
-            if (occupant > 0 && occupant !== selected) {
-                puzzleStatusEl.textContent = 'Cannot cross other paths.';
-                return;
-            }
+            if (occupant > 0 && occupant !== selected) return false;
 
             puzzleState.paths[selected].push(cell);
             puzzleDragState.lastCell = cell;
             renderPuzzle();
-            checkAutoComplete(selected);
 
-            // Auto-check if puzzle is fully solved
-            if (pathsCross()) {
-                puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
-                return;
+            if (number === selected) {
+                checkAutoComplete(selected);
+                if (pathsCross()) {
+                    puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
+                } else if (checkPuzzleSolved()) {
+                    completePuzzle();
+                }
             }
-            if (checkPuzzleSolved()) {
-                completePuzzle();
+            return true;
+        }
+
+        function handlePuzzleCellClick(e) {
+            if (puzzleState.solved) return;
+            const cell = getCellFromEvent(e);
+            if (!cell) return;
+            const number = getNumberAt(cell);
+            if (number > 0) {
+                selectPair(number, cell);
+            } else {
+                const occupant = cellOccupiedBy(cell);
+                if (occupant > 0) {
+                    const start = puzzleState.paths[occupant] ? puzzleState.paths[occupant][0] : cell;
+                    selectPair(occupant, start);
+                } else if (puzzleState.selected) {
+                    extendPath(cell);
+                } else {
+                    puzzleStatusEl.textContent = 'Select a number first.';
+                }
             }
         }
 
@@ -1178,18 +1170,34 @@
 
         function startDrag(e) {
             if (puzzleState.solved) return;
-            puzzleDragState.active = true;
-            puzzleGridEl.setPointerCapture(e.pointerId);
-            handlePuzzleCellClick(e);
+            const cell = getCellFromPoint(e.clientX, e.clientY) || getCellFromEvent(e);
+            if (!cell) return;
+            const number = getNumberAt(cell);
+            if (number > 0) {
+                selectPair(number, cell);
+                puzzleDragState.active = true;
+            } else {
+                const occupant = cellOccupiedBy(cell);
+                if (occupant > 0) {
+                    const start = puzzleState.paths[occupant] ? puzzleState.paths[occupant][0] : cell;
+                    selectPair(occupant, start);
+                    puzzleDragState.active = true;
+                } else if (puzzleState.selected) {
+                    puzzleDragState.active = true;
+                    extendPath(cell);
+                }
+            }
+            if (puzzleDragState.active) {
+                try { puzzleGridEl.setPointerCapture(e.pointerId); } catch (err) {}
+            }
         }
 
         function moveDrag(e) {
-            if (!puzzleDragState.active || puzzleState.solved) return;
+            if (!puzzleDragState.active || puzzleState.solved || !puzzleState.selected) return;
             e.preventDefault();
             const cell = getCellFromPoint(e.clientX, e.clientY);
             if (!cell) return;
-            if (puzzleDragState.lastCell && cell.r === puzzleDragState.lastCell.r && cell.c === puzzleDragState.lastCell.c) return;
-            handlePuzzleCellAction(cell);
+            extendPath(cell);
         }
 
         function endDrag(e) {
@@ -1202,13 +1210,11 @@
             e.preventDefault();
             startDrag(e);
         });
-        puzzleGridEl.addEventListener('pointermove', (e) => {
-            moveDrag(e);
-        });
+        puzzleGridEl.addEventListener('pointermove', moveDrag);
         puzzleGridEl.addEventListener('pointerup', endDrag);
         puzzleGridEl.addEventListener('pointercancel', endDrag);
         puzzleGridEl.addEventListener('pointerleave', (e) => {
-            if (!puzzleDragState.active) return;
+            if (!puzzleDragState.active || !puzzleState.selected) return;
             moveDrag(e);
         });
 
