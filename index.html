@@ -756,6 +756,11 @@
         const savePuzzleNameBtn = document.getElementById('savePuzzleName');
 
         let puzzleCachedLeaderboard = [];
+        let puzzleDragState = {
+            active: false,
+            pair: null,
+            lastCell: null
+        };
         let puzzleState = {
             grid: [],
             numPairs: 10,
@@ -931,7 +936,10 @@
             if (puzzleState.solved) return;
             const cell = getCellFromEvent(e);
             if (!cell) return;
+            handlePuzzleCellAction(cell);
+        }
 
+        function handlePuzzleCellAction(cell) {
             const number = getNumberAt(cell);
 
             if (!puzzleState.startTime && number > 0) {
@@ -940,7 +948,7 @@
             }
 
             if (number > 0) {
-                // If clicking the other endpoint of the selected pair and it's adjacent, connect it
+                // If this is the other endpoint of the currently selected pair and adjacent, connect it
                 if (puzzleState.selected === number) {
                     const path = puzzleState.paths[number] || [];
                     if (path.length > 0 && isAdjacent(path[path.length - 1], cell) && !pathContainsCell(path, cell)) {
@@ -950,11 +958,13 @@
                         return;
                     }
                 }
-                // Otherwise select this pair and start the path from this endpoint
+                // Select this pair and start the path from this endpoint
                 puzzleState.selected = number;
                 puzzleState.paths[number] = [cell];
+                puzzleDragState.pair = number;
+                puzzleDragState.lastCell = cell;
                 renderPuzzle();
-                puzzleStatusEl.textContent = `Selected ${number}. Click adjacent cells to draw path.`;
+                puzzleStatusEl.textContent = `Selected ${number}. Drag to draw path.`;
                 return;
             }
 
@@ -969,6 +979,7 @@
             if (pathContainsCell(path, cell)) {
                 const idx = path.findIndex(p => p.r === cell.r && p.c === cell.c);
                 puzzleState.paths[selected] = path.slice(0, idx + 1);
+                puzzleDragState.lastCell = cell;
                 renderPuzzle();
                 return;
             }
@@ -991,6 +1002,7 @@
             }
 
             puzzleState.paths[selected].push(cell);
+            puzzleDragState.lastCell = cell;
             renderPuzzle();
             checkAutoComplete(selected);
         }
@@ -1147,11 +1159,48 @@
             }
         }, { passive: false });
 
-        let lastPointerTarget = null;
+        function getCellFromPoint(x, y) {
+            const el = document.elementFromPoint(x, y);
+            if (el && el.classList.contains('puzzle-cell')) {
+                return { r: parseInt(el.dataset.r), c: parseInt(el.dataset.c) };
+            }
+            return null;
+        }
+
+        function startDrag(e) {
+            if (puzzleState.solved) return;
+            puzzleDragState.active = true;
+            puzzleGridEl.setPointerCapture(e.pointerId);
+            handlePuzzleCellClick(e);
+        }
+
+        function moveDrag(e) {
+            if (!puzzleDragState.active || puzzleState.solved) return;
+            e.preventDefault();
+            const cell = getCellFromPoint(e.clientX, e.clientY);
+            if (!cell) return;
+            if (puzzleDragState.lastCell && cell.r === puzzleDragState.lastCell.r && cell.c === puzzleDragState.lastCell.c) return;
+            handlePuzzleCellAction(cell);
+        }
+
+        function endDrag(e) {
+            puzzleDragState.active = false;
+            puzzleDragState.lastCell = null;
+            try { puzzleGridEl.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+
         puzzleGridEl.addEventListener('pointerdown', (e) => {
             e.preventDefault();
-            lastPointerTarget = e.target;
-            handlePuzzleCellClick(e);
+            startDrag(e);
+        });
+        puzzleGridEl.addEventListener('pointermove', (e) => {
+            moveDrag(e);
+        });
+        puzzleGridEl.addEventListener('pointerup', endDrag);
+        puzzleGridEl.addEventListener('pointercancel', endDrag);
+        puzzleGridEl.addEventListener('pointerleave', (e) => {
+            if (!puzzleDragState.active) return;
+            moveDrag(e);
         });
 
         refreshPuzzleLeaderboardBtn.addEventListener('click', () => loadLeaderboard(PUZZLE_API, puzzleLeaderboardRows, { value: puzzleCachedLeaderboard }, formatTime));
