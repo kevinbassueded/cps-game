@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reaction CPS Game</title>
+    <title>Reaction CPS Game + Puzzle</title>
     <style>
         * {
             margin: 0;
@@ -29,7 +29,41 @@
             margin-bottom: 0.5rem;
             color: #a0a0c0;
         }
-        #leaderboard {
+        #tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab {
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: transparent;
+            color: #8888aa;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .tab.active {
+            background: #3498db;
+            color: #fff;
+            border-color: #3498db;
+        }
+        .tab:active {
+            transform: scale(0.96);
+        }
+        .game-panel {
+            display: none;
+            width: 100%;
+            max-width: 420px;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-panel.active {
+            display: flex;
+        }
+        #leaderboard, #puzzleLeaderboard {
             width: 100%;
             max-width: 340px;
             background: rgba(255, 255, 255, 0.05);
@@ -38,7 +72,7 @@
             padding: 0.8rem 1rem;
             margin-bottom: 1rem;
         }
-        #leaderboard h2 {
+        #leaderboard h2, #puzzleLeaderboard h2 {
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -145,7 +179,7 @@
             font-weight: 700;
             color: #fff;
         }
-        #btn {
+        #btn, .game-btn {
             padding: 0.8rem 2rem;
             font-size: 1rem;
             font-weight: 700;
@@ -157,10 +191,10 @@
             transition: background 0.15s ease, transform 0.08s ease;
             margin-bottom: 0.8rem;
         }
-        #btn:hover {
+        #btn:hover, .game-btn:hover {
             background: #2980b9;
         }
-        #btn:active {
+        #btn:active, .game-btn:active {
             transform: scale(0.96);
         }
         .too-soon {
@@ -172,7 +206,7 @@
         .top-three {
             color: #f1c40f !important;
         }
-        #resetLeaderboard {
+        #resetLeaderboard, .refresh-btn {
             font-size: 0.75rem;
             color: #666699;
             background: transparent;
@@ -181,10 +215,10 @@
             padding: 0.4rem 0.8rem;
             cursor: pointer;
         }
-        #resetLeaderboard:active {
+        #resetLeaderboard:active, .refresh-btn:active {
             background: rgba(255, 255, 255, 0.08);
         }
-        #nameModal {
+        #nameModal, #puzzleNameModal {
             position: fixed;
             top: 0;
             left: 0;
@@ -197,7 +231,7 @@
             z-index: 100;
             padding: 1rem;
         }
-        #nameModal.active {
+        #nameModal.active, #puzzleNameModal.active {
             display: flex;
         }
         .modal-box {
@@ -248,6 +282,89 @@
         .modal-box button:active {
             transform: scale(0.98);
         }
+
+        /* Puzzle Styles */
+        #puzzleContainer {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #puzzleTimer {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #f1c40f;
+            margin-bottom: 0.5rem;
+            font-variant-numeric: tabular-nums;
+        }
+        #puzzleGrid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 1;
+            margin-bottom: 1rem;
+            touch-action: none;
+        }
+        .puzzle-cell {
+            background: #1a1a35;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background 0.1s ease, transform 0.08s ease;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .puzzle-cell.number {
+            color: #fff;
+            text-shadow: 0 0 4px rgba(0,0,0,0.5);
+        }
+        .puzzle-cell.selected {
+            box-shadow: inset 0 0 0 2px #fff;
+        }
+        .puzzle-controls {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .puzzle-btn {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            background: #2c3e50;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.08s ease;
+        }
+        .puzzle-btn:active {
+            transform: scale(0.96);
+        }
+        .puzzle-btn.primary {
+            background: #3498db;
+        }
+        .puzzle-btn.danger {
+            background: #e74c3c;
+        }
+        #puzzleStatus {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            min-height: 1.5em;
+            color: #c0c0d0;
+            text-align: center;
+        }
         @media (max-width: 400px) {
             #circle {
                 width: 160px;
@@ -257,28 +374,81 @@
                 width: 240px;
                 height: 240px;
             }
+            .puzzle-cell {
+                font-size: 0.7rem;
+            }
+        }
+        @media (min-width: 900px) {
+            body {
+                flex-direction: row;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 2rem;
+                padding: 2rem;
+            }
+            h1, #tabs {
+                position: absolute;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            #tabs {
+                top: 3.5rem;
+            }
+            .game-panel {
+                margin-top: 6rem;
+                max-width: 460px;
+            }
+            .game-panel.active {
+                display: flex;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Reaction CPS Game</h1>
+    <h1>Reaction CPS + Forsaken Puzzle</h1>
 
-    <div id="leaderboard">
-        <h2>🏆 Top 3 <button id="resetLeaderboard">Reset</button></h2>
-        <div id="leaderboardRows"></div>
+    <div id="tabs">
+        <button class="tab active" data-tab="cps">CPS Game</button>
+        <button class="tab" data-tab="puzzle">Puzzle</button>
     </div>
 
-    <div id="status">Tap Start, then wait for green...</div>
-    <div id="gameArea">
-        <div id="circle">TAP START</div>
+    <div id="cpsPanel" class="game-panel active">
+        <div id="leaderboard">
+            <h2>🏆 CPS Top 3 <button id="resetLeaderboard">Refresh</button></h2>
+            <div id="leaderboardRows"></div>
+        </div>
+
+        <div id="status">Tap Start, then wait for green...</div>
+        <div id="gameArea">
+            <div id="circle">TAP START</div>
+        </div>
+        <div id="result">-- ms</div>
+        <div id="stats">
+            <div class="stat">Average<span id="avg">--</span></div>
+            <div class="stat">Best<span id="best">--</span></div>
+            <div class="stat">CPS<span id="cps">--</span></div>
+        </div>
+        <button id="btn">Start</button>
     </div>
-    <div id="result">-- ms</div>
-    <div id="stats">
-        <div class="stat">Average<span id="avg">--</span></div>
-        <div class="stat">Best<span id="best">--</span></div>
-        <div class="stat">CPS<span id="cps">--</span></div>
+
+    <div id="puzzlePanel" class="game-panel">
+        <div id="puzzleLeaderboard">
+            <h2>🏆 Puzzle Fastest 3 <button class="refresh-btn" id="refreshPuzzleLeaderboard">Refresh</button></h2>
+            <div id="puzzleLeaderboardRows"></div>
+        </div>
+
+        <div id="puzzleContainer">
+            <div id="puzzleTimer">00:00.00</div>
+            <div id="puzzleGrid"></div>
+            <div id="puzzleStatus">Connect matching numbers with colored paths</div>
+            <div class="puzzle-controls">
+                <button class="puzzle-btn primary" id="newPuzzleBtn">New Puzzle</button>
+                <button class="puzzle-btn danger" id="clearPuzzleBtn">Clear Path</button>
+                <button class="puzzle-btn" id="checkPuzzleBtn">Check</button>
+            </div>
+        </div>
     </div>
-    <button id="btn">Start</button>
 
     <div id="nameModal">
         <div class="modal-box">
@@ -289,7 +459,39 @@
         </div>
     </div>
 
+    <div id="puzzleNameModal">
+        <div class="modal-box">
+            <h3>Puzzle Solved!</h3>
+            <p id="puzzleModalTime">Your time: --</p>
+            <input type="text" id="puzzleNameInput" placeholder="Enter your name" maxlength="12" autocomplete="off">
+            <button id="savePuzzleName">Save to Leaderboard</button>
+        </div>
+    </div>
+
     <script>
+        // --- TABS ---
+        const tabs = document.querySelectorAll('.tab');
+        const panels = {
+            cps: document.getElementById('cpsPanel'),
+            puzzle: document.getElementById('puzzlePanel')
+        };
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.values(panels).forEach(p => p.classList.remove('active'));
+                panels[tab.dataset.tab].classList.add('active');
+            });
+            tab.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.values(panels).forEach(p => p.classList.remove('active'));
+                panels[tab.dataset.tab].classList.add('active');
+            }, { passive: false });
+        });
+
+        // --- CPS GAME ---
         const circle = document.getElementById('circle');
         const status = document.getElementById('status');
         const result = document.getElementById('result');
@@ -304,20 +506,17 @@
         const saveNameBtn = document.getElementById('saveName');
         const resetLeaderboardBtn = document.getElementById('resetLeaderboard');
 
-        const STORAGE_KEY = 'cpsReactionLeaderboard';
         const MAX_LEADERS = 3;
-        const API_URL = 'https://cps-game-leaderboard.ksueded.workers.dev/leaderboard';
+        const REACTION_API = 'https://cps-game-leaderboard.ksueded.workers.dev/leaderboard';
 
-        let cachedLeaderboard = [];
-
-        let state = 'idle'; // idle, waiting, green, result, nameInput
+        let cpsCachedLeaderboard = [];
+        let state = 'idle';
         let greenTime = 0;
         let timeoutId = null;
         let reactionTimes = [];
         let best = Infinity;
         let lastReaction = null;
 
-        // --- Sound ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function beep(freq = 880, duration = 0.12, type = 'sine') {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -337,79 +536,74 @@
         function playTooSoonSound() { beep(220, 0.25, 'sawtooth'); }
         function playTopThreeSound() { beep(1320, 0.18, 'square'); }
 
-        // --- Leaderboard (remote API) ---
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        function renderLeaderboard(list) {
-            cachedLeaderboard = list;
-            leaderboardRows.innerHTML = '';
+        function renderLeaderboardGeneric(rowsEl, list, timeFormatter) {
+            rowsEl.innerHTML = '';
             if (!Array.isArray(list) || list.length === 0) {
                 const row = document.createElement('div');
                 row.className = 'leaderboard-row empty';
                 row.textContent = 'No records yet — be the first!';
-                leaderboardRows.appendChild(row);
+                rowsEl.appendChild(row);
                 return;
             }
             list.forEach((entry, i) => {
                 const row = document.createElement('div');
                 row.className = 'leaderboard-row' + (i === 0 ? ' top' : '');
+                const timeText = timeFormatter ? timeFormatter(entry.time) : entry.time + ' ms';
                 row.innerHTML = `
                     <span class="rank">#${i + 1}</span>
                     <span class="name">${escapeHtml(entry.name)}</span>
-                    <span class="time">${entry.time} ms</span>
+                    <span class="time">${timeText}</span>
                 `;
-                leaderboardRows.appendChild(row);
+                rowsEl.appendChild(row);
             });
-            // Pad empty slots
             for (let i = list.length; i < MAX_LEADERS; i++) {
                 const row = document.createElement('div');
                 row.className = 'leaderboard-row empty';
                 row.innerHTML = `<span class="rank">#${i + 1}</span><span class="name">--</span><span class="time">--</span>`;
-                leaderboardRows.appendChild(row);
+                rowsEl.appendChild(row);
             }
         }
-        async function loadLeaderboard() {
+        async function loadLeaderboard(api, rowsEl, cachedRef, timeFormatter) {
             try {
-                const res = await fetch(API_URL, { cache: 'no-store' });
+                const res = await fetch(api, { cache: 'no-store' });
                 if (!res.ok) throw new Error('fetch failed');
                 const list = await res.json();
-                renderLeaderboard(list);
+                cachedRef.value = list;
+                renderLeaderboardGeneric(rowsEl, list, timeFormatter);
             } catch (e) {
                 console.error('leaderboard load error', e);
-                renderLeaderboard([]);
+                cachedRef.value = [];
+                renderLeaderboardGeneric(rowsEl, [], timeFormatter);
             }
         }
-        function isTopThree(time) {
-            if (!Array.isArray(cachedLeaderboard)) return true;
-            if (cachedLeaderboard.length < MAX_LEADERS) return true;
-            return time < cachedLeaderboard[cachedLeaderboard.length - 1].time;
+        function isTopThree(time, cached) {
+            if (!Array.isArray(cached)) return true;
+            if (cached.length < MAX_LEADERS) return true;
+            return time < cached[cached.length - 1].time;
         }
-        async function addLeader(name, time) {
+        async function addLeader(api, rowsEl, name, time, cachedRef, timeFormatter) {
             try {
-                const res = await fetch(API_URL, {
+                const res = await fetch(api, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, time })
                 });
                 if (!res.ok) throw new Error('post failed');
                 const list = await res.json();
-                renderLeaderboard(list);
+                cachedRef.value = list;
+                renderLeaderboardGeneric(rowsEl, list, timeFormatter);
+                return true;
             } catch (e) {
                 console.error('leaderboard save error', e);
-                status.textContent = 'Save failed. Tap circle to retry.';
-                status.classList.add('not-top');
-                status.classList.remove('too-soon', 'top-three');
-                circle.textContent = 'RETRY';
-                state = 'result';
                 return false;
             }
-            return true;
         }
 
-        // --- Game ---
         function reset() {
             clearTimeout(timeoutId);
             state = 'idle';
@@ -428,7 +622,7 @@
             status.textContent = 'Wait for it to turn green...';
             circle.classList.remove('green');
 
-            const delay = 1500 + Math.random() * 2500; // 1.5 - 4s
+            const delay = 1500 + Math.random() * 2500;
             timeoutId = setTimeout(() => {
                 state = 'green';
                 greenTime = performance.now();
@@ -452,8 +646,9 @@
         async function submitName() {
             const name = nameInput.value.trim();
             if (!name) return;
-            const saved = await addLeader(name, lastReaction);
+            const saved = await addLeader(REACTION_API, leaderboardRows, name, lastReaction, { value: cpsCachedLeaderboard }, null);
             if (!saved) return;
+            cpsCachedLeaderboard = cpsCachedLeaderboard;
             nameModal.classList.remove('active');
             status.textContent = 'Saved! Tap circle or Start to retry.';
             status.classList.add('top-three');
@@ -492,7 +687,7 @@
                 bestEl.textContent = best + ' ms';
                 cpsEl.textContent = (1000 / reaction).toFixed(1);
 
-                if (isTopThree(reaction)) {
+                if (isTopThree(reaction, cpsCachedLeaderboard)) {
                     circle.textContent = 'TOP 3!';
                     status.textContent = 'Top 3! Enter your name.';
                     status.classList.add('top-three');
@@ -515,45 +710,456 @@
         }
 
         circle.addEventListener('click', handleTap);
-        circle.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleTap();
-        }, { passive: false });
+        circle.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(); }, { passive: false });
 
         btn.addEventListener('click', startRound);
-        btn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startRound();
-        }, { passive: false });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); startRound(); }, { passive: false });
 
         saveNameBtn.addEventListener('click', submitName);
-        saveNameBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            submitName();
-        }, { passive: false });
-        nameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') submitName();
-        });
+        saveNameBtn.addEventListener('touchstart', (e) => { e.preventDefault(); submitName(); }, { passive: false });
+        nameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitName(); });
         nameModal.addEventListener('click', (e) => {
             if (e.target === nameModal) {
-                // clicking outside modal just closes and lets user restart
                 nameModal.classList.remove('active');
                 reset();
             }
         });
 
-        resetLeaderboardBtn.addEventListener('click', () => {
-            loadLeaderboard();
-        });
-        resetLeaderboardBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            loadLeaderboard();
-        }, { passive: false });
-
-        // Prevent zoom on double tap only on game circle, leave buttons clickable
+        resetLeaderboardBtn.addEventListener('click', () => loadLeaderboard(REACTION_API, leaderboardRows, { value: cpsCachedLeaderboard }, null));
+        resetLeaderboardBtn.addEventListener('touchstart', (e) => { e.preventDefault(); loadLeaderboard(REACTION_API, leaderboardRows, { value: cpsCachedLeaderboard }, null); }, { passive: false });
         circle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
 
-        loadLeaderboard();
+        loadLeaderboard(REACTION_API, leaderboardRows, { value: cpsCachedLeaderboard }, null);
+
+        // --- PUZZLE GAME ---
+        const PUZZLE_API = 'https://cps-game-leaderboard.ksueded.workers.dev/puzzle-leaderboard';
+        const PUZZLE_SIZE = 10;
+        const MIN_PAIRS = 10;
+        const MAX_PAIRS = 11;
+        const COLORS = [
+            '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6',
+            '#e67e22', '#1abc9c', '#ff6b9d', '#00d2ff', '#a8e6cf',
+            '#ff8b94'
+        ];
+
+        const puzzleGridEl = document.getElementById('puzzleGrid');
+        const puzzleTimerEl = document.getElementById('puzzleTimer');
+        const puzzleStatusEl = document.getElementById('puzzleStatus');
+        const newPuzzleBtn = document.getElementById('newPuzzleBtn');
+        const clearPuzzleBtn = document.getElementById('clearPuzzleBtn');
+        const checkPuzzleBtn = document.getElementById('checkPuzzleBtn');
+        const puzzleLeaderboardRows = document.getElementById('puzzleLeaderboardRows');
+        const refreshPuzzleLeaderboardBtn = document.getElementById('refreshPuzzleLeaderboard');
+        const puzzleNameModal = document.getElementById('puzzleNameModal');
+        const puzzleModalTime = document.getElementById('puzzleModalTime');
+        const puzzleNameInput = document.getElementById('puzzleNameInput');
+        const savePuzzleNameBtn = document.getElementById('savePuzzleName');
+
+        let puzzleCachedLeaderboard = [];
+        let puzzleState = {
+            grid: [],
+            numPairs: 10,
+            paths: {},
+            selected: null,
+            startTime: null,
+            timerInterval: null,
+            solved: false
+        };
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            const centis = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
+            return `${minutes}:${seconds}.${centis}`;
+        }
+
+        function randomInt(max) { return Math.floor(Math.random() * max); }
+
+        function findPath(grid, start, end) {
+            const size = grid.length;
+            const queue = [[start]];
+            const visited = new Set([`${start.r},${start.c}`]);
+            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const curr = path[path.length - 1];
+                if (curr.r === end.r && curr.c === end.c) return path;
+
+                for (const [dr, dc] of dirs) {
+                    const nr = curr.r + dr, nc = curr.c + dc;
+                    if (nr < 0 || nr >= size || nc < 0 || nc >= size) continue;
+                    if (grid[nr][nc] !== 0) continue;
+                    const key = `${nr},${nc}`;
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    queue.push([...path, {r: nr, c: nc}]);
+                }
+            }
+            return null;
+        }
+
+        function generatePuzzle(size, numPairs) {
+            const grid = Array(size).fill().map(() => Array(size).fill(0));
+            const endpoints = [];
+            const maxAttempts = 100;
+
+            for (let n = 1; n <= numPairs; n++) {
+                let start, end, path;
+                let attempts = 0;
+                do {
+                    do {
+                        start = { r: randomInt(size), c: randomInt(size) };
+                        end = { r: randomInt(size), c: randomInt(size) };
+                    } while (grid[start.r][start.c] !== 0 || grid[end.r][end.c] !== 0 || (start.r === end.r && start.c === end.c));
+                    path = findPath(grid, start, end);
+                    attempts++;
+                } while (!path && attempts < maxAttempts);
+
+                if (!path) return generatePuzzle(size, numPairs);
+
+                for (const cell of path) {
+                    grid[cell.r][cell.c] = n;
+                }
+                endpoints.push({ n, start, end });
+            }
+
+            const puzzle = Array(size).fill().map(() => Array(size).fill(0));
+            for (const ep of endpoints) {
+                puzzle[ep.start.r][ep.start.c] = ep.n;
+                puzzle[ep.end.r][ep.end.c] = ep.n;
+            }
+            return { puzzle, solution: grid, endpoints };
+        }
+
+        function createPuzzleGrid() {
+            puzzleGridEl.innerHTML = '';
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'puzzle-cell';
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    puzzleGridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function getCellEl(r, c) {
+            return puzzleGridEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+        }
+
+        function renderPuzzle() {
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    const el = getCellEl(r, c);
+                    const number = puzzleState.grid[r][c];
+                    el.textContent = number > 0 ? number : '';
+                    el.className = 'puzzle-cell';
+                    el.style.background = '#1a1a35';
+                    el.style.color = '#fff';
+                    if (number > 0) {
+                        el.classList.add('number');
+                        el.style.background = COLORS[(number - 1) % COLORS.length];
+                    }
+                }
+            }
+
+            for (const [n, path] of Object.entries(puzzleState.paths)) {
+                const color = COLORS[(parseInt(n) - 1) % COLORS.length];
+                for (const cell of path) {
+                    const el = getCellEl(cell.r, cell.c);
+                    el.style.background = color + 'cc';
+                    el.style.color = '#fff';
+                }
+            }
+
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    const number = puzzleState.grid[r][c];
+                    if (number > 0) {
+                        const el = getCellEl(r, c);
+                        el.textContent = number;
+                        el.style.background = COLORS[(number - 1) % COLORS.length];
+                    }
+                }
+            }
+
+            if (puzzleState.selected) {
+                const endpoints = [];
+                for (let r = 0; r < PUZZLE_SIZE; r++) {
+                    for (let c = 0; c < PUZZLE_SIZE; c++) {
+                        if (puzzleState.grid[r][c] === puzzleState.selected) {
+                            endpoints.push({r, c});
+                        }
+                    }
+                }
+                endpoints.forEach(ep => getCellEl(ep.r, ep.c).classList.add('selected'));
+            }
+        }
+
+        function isAdjacent(a, b) {
+            return Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1;
+        }
+
+        function getCellFromEvent(e) {
+            if (e.target.classList.contains('puzzle-cell')) {
+                return { r: parseInt(e.target.dataset.r), c: parseInt(e.target.dataset.c) };
+            }
+            return null;
+        }
+
+        function getNumberAt(cell) {
+            return puzzleState.grid[cell.r][cell.c];
+        }
+
+        function pathContainsCell(path, cell) {
+            return path.some(p => p.r === cell.r && p.c === cell.c);
+        }
+
+        function cellOccupiedBy(cell) {
+            const number = getNumberAt(cell);
+            if (number > 0) return number;
+            for (const [n, path] of Object.entries(puzzleState.paths)) {
+                if (pathContainsCell(path, cell)) return parseInt(n);
+            }
+            return 0;
+        }
+
+        function handlePuzzleCellClick(e) {
+            if (puzzleState.solved) return;
+            const cell = getCellFromEvent(e);
+            if (!cell) return;
+
+            const number = getNumberAt(cell);
+
+            if (!puzzleState.startTime && number > 0) {
+                puzzleState.startTime = performance.now();
+                startPuzzleTimer();
+            }
+
+            if (number > 0) {
+                puzzleState.selected = number;
+                puzzleState.paths[number] = puzzleState.paths[number] || [];
+                renderPuzzle();
+                puzzleStatusEl.textContent = `Selected ${number}. Click adjacent cells to draw path.`;
+                return;
+            }
+
+            if (!puzzleState.selected) {
+                puzzleStatusEl.textContent = 'Select a number first.';
+                return;
+            }
+
+            const selected = puzzleState.selected;
+            const path = puzzleState.paths[selected] || [];
+
+            if (pathContainsCell(path, cell)) {
+                const idx = path.findIndex(p => p.r === cell.r && p.c === cell.c);
+                puzzleState.paths[selected] = path.slice(0, idx + 1);
+                renderPuzzle();
+                return;
+            }
+
+            if (path.length === 0) {
+                puzzleStatusEl.textContent = 'Select a number endpoint first.';
+                return;
+            }
+
+            const last = path[path.length - 1];
+            if (!isAdjacent(last, cell)) {
+                puzzleStatusEl.textContent = 'Only adjacent cells.';
+                return;
+            }
+
+            const occupant = cellOccupiedBy(cell);
+            if (occupant > 0 && occupant !== selected) {
+                puzzleStatusEl.textContent = 'Cannot cross other paths.';
+                return;
+            }
+
+            puzzleState.paths[selected].push(cell);
+            renderPuzzle();
+            checkAutoComplete(selected);
+        }
+
+        function checkAutoComplete(number) {
+            const endpoints = [];
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    if (puzzleState.grid[r][c] === number) endpoints.push({r, c});
+                }
+            }
+            const path = puzzleState.paths[number] || [];
+            if (endpoints.length === 2 && pathContainsCell(path, endpoints[0]) && pathContainsCell(path, endpoints[1])) {
+                puzzleStatusEl.textContent = `Pair ${number} connected!`;
+            }
+        }
+
+        function checkPuzzleSolved() {
+            for (let n = 1; n <= puzzleState.numPairs; n++) {
+                const endpoints = [];
+                for (let r = 0; r < PUZZLE_SIZE; r++) {
+                    for (let c = 0; c < PUZZLE_SIZE; c++) {
+                        if (puzzleState.grid[r][c] === n) endpoints.push({r, c});
+                    }
+                }
+                if (endpoints.length !== 2) continue;
+                const path = puzzleState.paths[n] || [];
+                if (!pathContainsCell(path, endpoints[0]) || !pathContainsCell(path, endpoints[1])) {
+                    return false;
+                }
+                if (!isPathContinuous(path)) return false;
+            }
+            return true;
+        }
+
+        function isPathContinuous(path) {
+            for (let i = 1; i < path.length; i++) {
+                if (!isAdjacent(path[i-1], path[i])) return false;
+            }
+            return true;
+        }
+
+        function pathsCross() {
+            const occupied = {};
+            for (const [n, path] of Object.entries(puzzleState.paths)) {
+                for (const cell of path) {
+                    const key = `${cell.r},${cell.c}`;
+                    if (occupied[key] && occupied[key] !== parseInt(n)) return true;
+                    occupied[key] = parseInt(n);
+                }
+            }
+            return false;
+        }
+
+        function startPuzzleTimer() {
+            stopPuzzleTimer();
+            puzzleState.timerInterval = setInterval(() => {
+                const elapsed = performance.now() - puzzleState.startTime;
+                puzzleTimerEl.textContent = formatTime(elapsed);
+            }, 50);
+        }
+        function stopPuzzleTimer() {
+            if (puzzleState.timerInterval) clearInterval(puzzleState.timerInterval);
+            puzzleState.timerInterval = null;
+        }
+
+        function initPuzzle() {
+            const numPairs = MIN_PAIRS + randomInt(MAX_PAIRS - MIN_PAIRS + 1);
+            const { puzzle } = generatePuzzle(PUZZLE_SIZE, numPairs);
+            puzzleState = {
+                grid: puzzle,
+                numPairs: numPairs,
+                paths: {},
+                selected: null,
+                startTime: null,
+                timerInterval: null,
+                solved: false
+            };
+            puzzleTimerEl.textContent = '00:00.00';
+            puzzleStatusEl.textContent = 'Connect matching numbers with colored paths.';
+            createPuzzleGrid();
+            renderPuzzle();
+        }
+
+        function completePuzzle() {
+            puzzleState.solved = true;
+            stopPuzzleTimer();
+            const elapsed = performance.now() - puzzleState.startTime;
+            const timeMs = Math.round(elapsed);
+            puzzleTimerEl.textContent = formatTime(elapsed);
+            puzzleStatusEl.textContent = 'Solved! 🎉';
+
+            if (isTopThree(timeMs, puzzleCachedLeaderboard)) {
+                puzzleModalTime.textContent = 'Your time: ' + formatTime(elapsed);
+                puzzleNameInput.value = '';
+                puzzleNameModal.classList.add('active');
+                puzzleNameInput.focus();
+            } else {
+                puzzleStatusEl.textContent = 'Solved! Not top 3. Try a new puzzle.';
+            }
+        }
+
+        async function submitPuzzleName() {
+            const name = puzzleNameInput.value.trim();
+            if (!name) return;
+            const elapsed = puzzleState.startTime ? Math.round(performance.now() - puzzleState.startTime) : 0;
+            const saved = await addLeader(PUZZLE_API, puzzleLeaderboardRows, name, elapsed, { value: puzzleCachedLeaderboard }, formatTime);
+            if (!saved) return;
+            puzzleCachedLeaderboard = puzzleCachedLeaderboard;
+            puzzleNameModal.classList.remove('active');
+            puzzleStatusEl.textContent = 'Saved! Try another puzzle.';
+        }
+
+        newPuzzleBtn.addEventListener('click', initPuzzle);
+        newPuzzleBtn.addEventListener('touchstart', (e) => { e.preventDefault(); initPuzzle(); }, { passive: false });
+
+        clearPuzzleBtn.addEventListener('click', () => {
+            if (!puzzleState.selected || puzzleState.solved) return;
+            puzzleState.paths[puzzleState.selected] = [];
+            renderPuzzle();
+            puzzleStatusEl.textContent = `Cleared path for ${puzzleState.selected}.`;
+        });
+        clearPuzzleBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!puzzleState.selected || puzzleState.solved) return;
+            puzzleState.paths[puzzleState.selected] = [];
+            renderPuzzle();
+            puzzleStatusEl.textContent = `Cleared path for ${puzzleState.selected}.`;
+        }, { passive: false });
+
+        checkPuzzleBtn.addEventListener('click', () => {
+            if (puzzleState.solved) return;
+            if (pathsCross()) {
+                puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
+                return;
+            }
+            if (checkPuzzleSolved()) {
+                completePuzzle();
+            } else {
+                puzzleStatusEl.textContent = 'Not all pairs connected. Keep going.';
+            }
+        });
+        checkPuzzleBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (puzzleState.solved) return;
+            if (pathsCross()) {
+                puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
+                return;
+            }
+            if (checkPuzzleSolved()) {
+                completePuzzle();
+            } else {
+                puzzleStatusEl.textContent = 'Not all pairs connected. Keep going.';
+            }
+        }, { passive: false });
+
+        puzzleGridEl.addEventListener('click', handlePuzzleCellClick);
+        puzzleGridEl.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handlePuzzleCellClick(e);
+        }, { passive: false });
+
+        refreshPuzzleLeaderboardBtn.addEventListener('click', () => loadLeaderboard(PUZZLE_API, puzzleLeaderboardRows, { value: puzzleCachedLeaderboard }, formatTime));
+        refreshPuzzleLeaderboardBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            loadLeaderboard(PUZZLE_API, puzzleLeaderboardRows, { value: puzzleCachedLeaderboard }, formatTime);
+        }, { passive: false });
+
+        savePuzzleNameBtn.addEventListener('click', submitPuzzleName);
+        savePuzzleNameBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            submitPuzzleName();
+        }, { passive: false });
+        puzzleNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitPuzzleName(); });
+        puzzleNameModal.addEventListener('click', (e) => {
+            if (e.target === puzzleNameModal) puzzleNameModal.classList.remove('active');
+        });
+
+        initPuzzle();
+        loadLeaderboard(PUZZLE_API, puzzleLeaderboardRows, { value: puzzleCachedLeaderboard }, formatTime);
     </script>
 </body>
 </html>
