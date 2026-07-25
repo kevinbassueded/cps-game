@@ -940,8 +940,19 @@
             }
 
             if (number > 0) {
+                // If clicking the other endpoint of the selected pair and it's adjacent, connect it
+                if (puzzleState.selected === number) {
+                    const path = puzzleState.paths[number] || [];
+                    if (path.length > 0 && isAdjacent(path[path.length - 1], cell) && !pathContainsCell(path, cell)) {
+                        puzzleState.paths[number].push(cell);
+                        renderPuzzle();
+                        checkAutoComplete(number);
+                        return;
+                    }
+                }
+                // Otherwise select this pair and start the path from this endpoint
                 puzzleState.selected = number;
-                puzzleState.paths[number] = puzzleState.paths[number] || [];
+                puzzleState.paths[number] = [cell];
                 renderPuzzle();
                 puzzleStatusEl.textContent = `Selected ${number}. Click adjacent cells to draw path.`;
                 return;
