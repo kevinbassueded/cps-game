@@ -981,8 +981,9 @@
                 checkAutoComplete(selected);
                 if (pathsCross()) {
                     puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
-                } else if (checkPuzzleSolved()) {
-                    completePuzzle();
+                } else {
+                    snapAllEndpoints();
+                    if (checkPuzzleSolved()) completePuzzle();
                 }
             }
             return true;
@@ -1019,6 +1020,47 @@
             if (endpoints.length === 2 && pathContainsCell(path, endpoints[0]) && pathContainsCell(path, endpoints[1])) {
                 puzzleStatusEl.textContent = `Pair ${number} connected!`;
             }
+        }
+
+        function getOtherEndpoint(number) {
+            const endpoints = [];
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    if (puzzleState.grid[r][c] === number) endpoints.push({r, c});
+                }
+            }
+            return endpoints.length === 2 ? endpoints : null;
+        }
+
+        function snapToEndpoint(number) {
+            const eps = getOtherEndpoint(number);
+            if (!eps) return false;
+            const path = puzzleState.paths[number] || [];
+            if (path.length === 0) return false;
+            const [start, end] = eps;
+            // If start of path is closer to one endpoint and end is closer to the other, and both adjacent, snap
+            const startAdj = isAdjacent(path[0], start) || (path[0].r === start.r && path[0].c === start.c);
+            const endAdj = isAdjacent(path[path.length - 1], end) || (path[path.length - 1].r === end.r && path[path.length - 1].c === end.c);
+            const startAdjOther = isAdjacent(path[0], end) || (path[0].r === end.r && path[0].c === end.c);
+            const endAdjOther = isAdjacent(path[path.length - 1], start) || (path[path.length - 1].r === start.r && path[path.length - 1].c === start.c);
+            let added = false;
+            if (startAdj && !pathContainsCell(path, start)) { path.unshift(start); added = true; }
+            if (endAdj && !pathContainsCell(path, end)) { path.push(end); added = true; }
+            if (startAdjOther && !pathContainsCell(path, end)) { path.unshift(end); added = true; }
+            if (endAdjOther && !pathContainsCell(path, start)) { path.push(start); added = true; }
+            if (added) {
+                puzzleState.paths[number] = path;
+                renderPuzzle();
+            }
+            return added;
+        }
+
+        function snapAllEndpoints() {
+            let changed = false;
+            for (let n = 1; n <= puzzleState.numPairs; n++) {
+                if (snapToEndpoint(n)) changed = true;
+            }
+            return changed;
         }
 
         function checkPuzzleSolved() {
@@ -1136,6 +1178,7 @@
 
         checkPuzzleBtn.addEventListener('click', () => {
             if (puzzleState.solved) return;
+            snapAllEndpoints();
             if (pathsCross()) {
                 puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
                 return;
@@ -1149,6 +1192,7 @@
         checkPuzzleBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (puzzleState.solved) return;
+            snapAllEndpoints();
             if (pathsCross()) {
                 puzzleStatusEl.textContent = 'Paths cannot cross. Fix and try again.';
                 return;
@@ -1201,6 +1245,9 @@
         }
 
         function endDrag(e) {
+            if (puzzleState.selected && puzzleDragState.active) {
+                snapToEndpoint(puzzleState.selected);
+            }
             puzzleDragState.active = false;
             puzzleDragState.lastCell = null;
             try { puzzleGridEl.releasePointerCapture(e.pointerId); } catch (err) {}
